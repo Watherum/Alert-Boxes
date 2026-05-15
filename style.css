@@ -1,0 +1,124 @@
+@font-face {
+  font-family: 'Teko';
+  src: url('Fonts/Teko-Medium.ttf') format('truetype');
+  font-weight: 500;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.alert {
+  display: none;
+  position: relative;
+}
+
+.alert--visible {
+  display: block;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+.alert--hiding {
+  display: block;
+  animation: fadeOut 0.3s ease forwards;
+}
+
+.alert video {
+  display: block;
+  width: 100%;
+}
+
+.alert__content {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: 'Teko', sans-serif;
+  transition: opacity 0.3s ease;
+}
+
+.alert__content--fade {
+  opacity: 0;
+}
+
+.alert__title {
+  position: absolute;
+  top: 38.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 3rem;
+  font-weight: 500;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.alert--visible .alert__title {
+  animation: fadeIn 0.4s ease 2s forwards;
+}
+
+.alert__message {
+  position: absolute;
+  top: 46.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 5rem;
+  font-weight: 500;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  text-align: center;
+  width: 80%;
+  opacity: 0;
+}
+
+.alert--visible .alert__message {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+#test-panel {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+}
+
+#test-panel button {
+  padding: 8px 16px;
+  background: rgba(14, 14, 18, 0.85);
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+#test-panel button:hover {
+  background: rgba(145, 71, 255, 0.4);
+  border-color: #9147ff;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

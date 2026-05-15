@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Alerts</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="alert" class="alert">
+    <video id="alert-video" src="Animation/SpectreAlert.webm" muted playsinline></video>
+    <div class="alert__content">
+      <div class="alert__title"></div>
+      <div class="alert__message"></div>
+    </div>
+  </div>
+
+  <script src="youtube-config.js"></script>
+  <script src="youtube-alerts.js"></script>
+  <script>
+    const panel = document.createElement('div');
+    panel.id = 'test-panel';
+    panel.innerHTML = `
+      <button onclick="ytAlerts.queueAlert({ type:'superchat',    title:'Super Chat!',   message:'TestUser - $5.00' })">Super Chat</button>
+      <button onclick="ytAlerts.queueAlert({ type:'supersticker', title:'Super Sticker!', message:'TestUser - $2.00' })">Super Sticker</button>
+      <button onclick="ytAlerts.queueAlert({ type:'member',       title:'New Member!',    message:'TestUser just joined!' })">Member</button>
+      <button onclick="ytAlerts.queueAlert({ type:'member',       title:'6 Month Member!', message:'TestUser has been a member for 6 months!' })">Milestone</button>
+    `;
+    panel.style.display = 'none';
+    document.body.appendChild(panel);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '`') {
+        panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alerts</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="alert" class="alert">
+    <video id="alert-video" src="Animation/SpectreAlert.webm" muted playsinline></video>
+    <div class="alert__content">
+      <div class="alert__title"></div>
+      <div class="alert__message"></div>
+    </div>
+  </div>
+
+  <script src="twitch-config.js"></script>
+  <script src="twitch-alerts.js"></script>
+  <script>
+    const panel = document.createElement('div');
+    panel.id = 'test-panel';
+    panel.innerHTML = `
+      <button onclick="alerts.queueAlert({ type:'follow',    title:'New Follower!',   message:'TestUser just followed!' })">Follow</button>
+      <button onclick="alerts.queueAlert({ type:'subscribe', title:'New Subscriber!', message:'TestUser just subscribed!' })">Sub</button>
+      <button onclick="alerts.queueAlert({ type:'cheer',     title:'100 Bits!',       message:'TestUser cheered 100 bits!' })">Cheer</button>
+      <button onclick="alerts.queueAlert({ type:'raid',      title:'Incoming Raid!',  message:'TestUser is raiding with 50 viewers!' })">Raid</button>
+    `;
+    panel.style.display = 'none';
+    document.body.appendChild(panel);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '`') {
+        panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+      }
+    });
+  </script>
+</body>
+</html>
