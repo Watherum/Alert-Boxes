@@ -7,17 +7,65 @@ class TwitchAlerts {
     this.alertQueue = [];
     this.isShowingAlert = false;
     this.reconnectUrl = null;
+    this.refreshTimer = null;
   }
 
   async init() {
     this.broadcasterId = await this.fetchBroadcasterId();
     if (!this.broadcasterId) {
-      console.error('Failed to fetch broadcaster ID. Check your clientId, accessToken, and broadcasterLogin.');
+      console.error('[TwitchAlerts] Failed to fetch broadcaster ID. Check your config credentials.');
       return;
     }
+    this.scheduleTokenRefresh(3.5 * 60 * 60 * 1000); // refresh 30 min before 4-hour expiry
     await this.waitForVideo();
     await document.fonts.ready;
     this.connect();
+  }
+
+  scheduleTokenRefresh(delayMs) {
+    clearTimeout(this.refreshTimer);
+    this.refreshTimer = setTimeout(() => this.refreshAndReconnect(), delayMs);
+  }
+
+  async refreshAndReconnect() {
+    console.log('[TwitchAlerts] Proactively refreshing access token...');
+    const refreshed = await this.refreshAccessToken();
+    if (refreshed) {
+      // Close the existing WebSocket — handleClose will reconnect with the new token
+      if (this.ws) this.ws.close();
+    }
+    this.scheduleTokenRefresh(3.5 * 60 * 60 * 1000);
+  }
+
+  async refreshAccessToken() {
+    if (!this.config.refreshToken || !this.config.clientSecret) {
+      console.error('[TwitchAlerts] Cannot refresh: clientSecret and refreshToken are required in config.');
+      return false;
+    }
+    try {
+      const res = await fetch('https://id.twitch.tv/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: this.config.refreshToken,
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('[TwitchAlerts] Token refresh failed:', data);
+        return false;
+      }
+      this.config.accessToken = data.access_token;
+      this.config.refreshToken = data.refresh_token;
+      console.log('[TwitchAlerts] Access token refreshed successfully.');
+      return true;
+    } catch (err) {
+      console.error('[TwitchAlerts] Token refresh network error:', err);
+      return false;
+    }
   }
 
   waitForVideo() {
@@ -26,7 +74,7 @@ class TwitchAlerts {
     return new Promise(resolve => video.addEventListener('loadedmetadata', resolve, { once: true }));
   }
 
-  async fetchBroadcasterId() {
+  async fetchBroadcasterId(isRetry = false) {
     const res = await fetch(`https://api.twitch.tv/helix/users?login=${this.config.broadcasterLogin}`, {
       headers: {
         'Client-Id': this.config.clientId,
@@ -34,7 +82,19 @@ class TwitchAlerts {
       },
     });
     const data = await res.json();
-    return data?.data?.[0]?.id ?? null;
+    if (res.status === 401 && !isRetry) {
+      console.warn('[TwitchAlerts] Token expired on startup, attempting refresh...');
+      const refreshed = await this.refreshAccessToken();
+      if (refreshed) return this.fetchBroadcasterId(true);
+      return null;
+    }
+    if (!res.ok) {
+      console.error(`[TwitchAlerts] fetchBroadcasterId failed (${res.status}):`, data);
+      return null;
+    }
+    const id = data?.data?.[0]?.id ?? null;
+    if (!id) console.error('[TwitchAlerts] No user found for login:', this.config.broadcasterLogin);
+    return id;
   }
 
   connect(url = 'wss://eventsub.wss.twitch.tv/ws') {
@@ -66,7 +126,7 @@ class TwitchAlerts {
     }
   }
 
-  async createSubscriptions() {
+  async createSubscriptions(isRetry = false) {
     const id = this.broadcasterId;
     const subscriptions = [
       { type: 'channel.follow',               version: '2', condition: { broadcaster_user_id: id, moderator_user_id: id } },
@@ -77,7 +137,7 @@ class TwitchAlerts {
     ];
 
     for (const sub of subscriptions) {
-      await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
+      const res = await fetch('https://api.twitch.tv/helix/eventsub/subscriptions', {
         method: 'POST',
         headers: {
           'Client-Id': this.config.clientId,
@@ -88,7 +148,23 @@ class TwitchAlerts {
           ...sub,
           transport: { method: 'websocket', session_id: this.sessionId },
         }),
-      }).catch((err) => console.error(`Failed to subscribe to ${sub.type}:`, err));
+      }).catch((err) => { console.error(`[TwitchAlerts] Network error subscribing to ${sub.type}:`, err); return null; });
+
+      if (!res) continue;
+      const data = await res.json();
+
+      if (res.status === 401 && !isRetry) {
+        console.warn('[TwitchAlerts] Token expired during subscription, attempting refresh...');
+        const refreshed = await this.refreshAccessToken();
+        if (refreshed) return this.createSubscriptions(true);
+        return;
+      }
+
+      if (!res.ok) {
+        console.error(`[TwitchAlerts] Failed to subscribe to ${sub.type} (${res.status}):`, data);
+      } else {
+        console.log(`[TwitchAlerts] Subscribed to ${sub.type} — status: ${data?.data?.[0]?.status}`);
+      }
     }
   }
 
