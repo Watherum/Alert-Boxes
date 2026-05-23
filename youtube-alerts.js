@@ -12,6 +12,7 @@ class YouTubeAlerts {
   async init() {
     await this.waitForVideo();
     await document.fonts.ready;
+    this.preloadSounds();
     await this.refreshAccessToken();
     this.liveChatId = await this.findLiveChatId();
     if (!this.liveChatId) {
@@ -119,6 +120,7 @@ class YouTubeAlerts {
         const months = item.snippet.memberMilestoneChatDetails.memberMonth;
         alertData = {
           type: 'member',
+          sound: 'milestone',
           title: `${months} Month Member!`,
           message: `${author} has been a member for ${months} months!`,
         };
@@ -132,6 +134,24 @@ class YouTubeAlerts {
   queueAlert(alertData) {
     this.alertQueue.push(alertData);
     if (!this.isShowingAlert) this.showNextAlert();
+  }
+
+  preloadSounds() {
+    this.soundCache = {};
+    const sounds = this.config.sounds ?? {};
+    for (const [key, path] of Object.entries(sounds)) {
+      const audio = new Audio(path);
+      audio.preload = 'auto';
+      audio.load();
+      this.soundCache[key] = audio;
+    }
+  }
+
+  playAlertSound(type) {
+    const audio = this.soundCache?.[type];
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
   }
 
   fitText(msg) {
@@ -171,6 +191,7 @@ class YouTubeAlerts {
     void el.offsetHeight;
     el.classList.add('alert--visible');
     video.play();
+    this.playAlertSound(data.sound ?? data.type);
     requestAnimationFrame(() => requestAnimationFrame(() => this.fitText(msg)));
 
     setTimeout(() => content.classList.add('alert__content--fade'), this.config.alertDuration - 500);

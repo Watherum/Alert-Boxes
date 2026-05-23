@@ -19,7 +19,19 @@ class TwitchAlerts {
     this.scheduleTokenRefresh(3.5 * 60 * 60 * 1000); // refresh 30 min before 4-hour expiry
     await this.waitForVideo();
     await document.fonts.ready;
+    this.preloadSounds();
     this.connect();
+  }
+
+  preloadSounds() {
+    this.soundCache = {};
+    const sounds = this.config.sounds ?? {};
+    for (const [key, path] of Object.entries(sounds)) {
+      const audio = new Audio(path);
+      audio.preload = 'auto';
+      audio.load();
+      this.soundCache[key] = audio;
+    }
   }
 
   scheduleTokenRefresh(delayMs) {
@@ -217,6 +229,13 @@ class TwitchAlerts {
     if (!this.isShowingAlert) this.showNextAlert();
   }
 
+  playAlertSound(type) {
+    const audio = this.soundCache?.[type];
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
   fitText(msg) {
     const originalSize = 5;
     const video = document.getElementById('alert-video');
@@ -255,6 +274,7 @@ class TwitchAlerts {
     void el.offsetHeight;
     el.classList.add('alert--visible');
     video.play();
+    this.playAlertSound(data.sound ?? data.type);
     requestAnimationFrame(() => requestAnimationFrame(() => this.fitText(msg)));
 
     setTimeout(() => content.classList.add('alert__content--fade'), this.config.alertDuration - 500);
