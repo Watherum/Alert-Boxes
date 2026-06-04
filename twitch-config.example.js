@@ -7,4 +7,12 @@ const CONFIG = {
 
   alertDuration: 7000,
   alertCooldown: 1000,
+
+  sounds: {
+    follow:    'Sounds/Follow/follow.ogg',
+    subscribe: 'Sounds/Sub/sub.ogg',
+    gift:      'Sounds/Sub/sub.ogg',
+    cheer:     'Sounds/Cheer/cheer.ogg',
+    raid:      'Sounds/Raid/raid.ogg',
+  },
 };
