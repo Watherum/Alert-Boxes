@@ -143,6 +143,7 @@ class TwitchAlerts {
     const subscriptions = [
       { type: 'channel.follow',               version: '2', condition: { broadcaster_user_id: id, moderator_user_id: id } },
       { type: 'channel.subscribe',            version: '1', condition: { broadcaster_user_id: id } },
+      { type: 'channel.subscription.gift',    version: '1', condition: { broadcaster_user_id: id } },
       { type: 'channel.subscription.message', version: '1', condition: { broadcaster_user_id: id } },
       { type: 'channel.cheer',                version: '1', condition: { broadcaster_user_id: id } },
       { type: 'channel.raid',                 version: '1', condition: { to_broadcaster_user_id: id } },
@@ -192,12 +193,23 @@ class TwitchAlerts {
         };
         break;
       case 'channel.subscribe':
+        if (event.is_gift) break; // handled by channel.subscription.gift
         alertData = {
           type: 'subscribe',
           title: 'New Subscriber!',
           message: `${event.user_name} just subscribed!`,
         };
         break;
+      case 'channel.subscription.gift': {
+        const gifter = event.is_anonymous ? 'An anonymous gifter' : event.user_name;
+        const count = event.total;
+        alertData = {
+          type: 'gift',
+          title: `${count} Gift Sub${count !== 1 ? 's' : ''}!`,
+          message: `${gifter} gifted ${count} sub${count !== 1 ? 's' : ''}!`,
+        };
+        break;
+      }
       case 'channel.subscription.message':
         alertData = {
           type: 'subscribe',
